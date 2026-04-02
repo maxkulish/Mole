@@ -80,6 +80,41 @@ EOF
     [[ "$output" == *"Trash · emptied, 2 items"* ]]
 }
 
+@test "clean_user_essentials keeps Mole runtime logs while cleaning other user logs" {
+    mkdir -p "$HOME/Library/Logs/mole"
+    mkdir -p "$HOME/Library/Logs/OtherApp"
+    touch "$HOME/Library/Logs/mole/operations.log"
+    touch "$HOME/Library/Logs/OtherApp/old.log"
+
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc <<'EOF'
+set -euo pipefail
+source "$PROJECT_ROOT/lib/core/common.sh"
+source "$PROJECT_ROOT/lib/clean/user.sh"
+DRY_RUN=false
+start_section_spinner() { :; }
+stop_section_spinner() { :; }
+note_activity() { :; }
+is_path_whitelisted() { return 1; }
+safe_clean() {
+    local path=""
+    for path in "${@:1:$#-1}"; do
+        if should_protect_path "$path"; then
+            continue
+        fi
+        /bin/rm -rf "$path"
+    done
+}
+
+clean_user_essentials
+
+[[ -d "$HOME/Library/Logs/mole" ]]
+[[ -f "$HOME/Library/Logs/mole/operations.log" ]]
+[[ ! -e "$HOME/Library/Logs/OtherApp/old.log" ]]
+EOF
+
+    [ "$status" -eq 0 ]
+}
+
 @test "clean_app_caches includes macOS system caches" {
     run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc <<'EOF'
 set -euo pipefail
@@ -609,4 +644,75 @@ EOF
     [[ "$output" == *"FOUND: .DS_Store"* ]]
     [[ "$output" == *"FOUND: .hidden_dir"* ]]
     [[ "$output" == *"FOUND: regular_file.txt"* ]]
+}
+
+@test "validate_external_volume_target canonicalizes root before comparing target" {
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" bash --noprofile --norc <<'EOF'
+set -euo pipefail
+source "$PROJECT_ROOT/lib/core/common.sh"
+source "$PROJECT_ROOT/lib/clean/user.sh"
+
+mock_bin="$HOME/bin"
+mkdir -p "$mock_bin"
+cat > "$mock_bin/diskutil" <<'MOCK'
+#!/bin/bash
+exit 0
+MOCK
+chmod +x "$mock_bin/diskutil"
+export PATH="$mock_bin:$PATH"
+
+real_root="$(mktemp -d "$HOME/ext-real.XXXXXX")"
+link_root="$HOME/ext-link"
+ln -s "$real_root" "$link_root"
+mkdir -p "$link_root/USB"
+export MOLE_EXTERNAL_VOLUMES_ROOT="$link_root"
+
+resolved=$(validate_external_volume_target "$link_root/USB")
+echo "RESOLVED=$resolved"
+EOF
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"RESOLVED="*"/USB"* ]]
+    [[ "$output" != *"must be under"* ]]
+}
+
+@test "clean_app_caches caps precise sandbox size scans when many containers exist" {
+    run env HOME="$HOME" PROJECT_ROOT="$PROJECT_ROOT" DRY_RUN=true MOLE_CONTAINER_CACHE_PRECISE_SIZE_LIMIT=2 bash --noprofile --norc <<'EOF'
+set -euo pipefail
+source "$PROJECT_ROOT/lib/core/common.sh"
+source "$PROJECT_ROOT/lib/clean/user.sh"
+start_section_spinner() { :; }
+stop_section_spinner() { :; }
+safe_clean() { :; }
+clean_support_app_data() { :; }
+clean_group_container_caches() { :; }
+bytes_to_human() { echo "0B"; }
+note_activity() { :; }
+should_protect_data() { return 1; }
+is_critical_system_component() { return 1; }
+files_cleaned=0
+total_size_cleaned=0
+total_items=0
+
+count_file="$HOME/size-count"
+get_path_size_kb() {
+    local count
+    count=$(cat "$count_file" 2> /dev/null || echo "0")
+    count=$((count + 1))
+    echo "$count" > "$count_file"
+    echo "1"
+}
+
+for i in $(seq 1 5); do
+    mkdir -p "$HOME/Library/Containers/com.example.$i/Data/Library/Caches"
+    touch "$HOME/Library/Containers/com.example.$i/Data/Library/Caches/file-$i.tmp"
+done
+
+clean_app_caches
+echo "SIZE_CALLS=$(cat "$count_file")"
+EOF
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Sandboxed app caches"* ]]
+    [[ "$output" == *"SIZE_CALLS=2"* ]]
 }

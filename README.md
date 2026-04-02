@@ -90,7 +90,7 @@ Review [SECURITY.md](SECURITY.md) and [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for
 ## Tips
 
 - Video tutorial: Watch the [Mole tutorial video](https://www.youtube.com/watch?v=UEe9-w4CcQ0), thanks to PAPAYA 電腦教室.
-- Safety and logs: `clean`, `uninstall`, `purge`, `installer`, and `remove` are destructive. Review with `--dry-run` first, and add `--debug` when needed. File operations are logged to `~/.config/mole/operations.log`. Disable with `MO_NO_OPLOG=1`. Review [SECURITY.md](SECURITY.md) and [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
+- Safety and logs: `clean`, `uninstall`, `purge`, `installer`, and `remove` are destructive. Review with `--dry-run` first, and add `--debug` when needed. File operations are logged to `~/Library/Logs/mole/operations.log`. Disable with `MO_NO_OPLOG=1`. Review [SECURITY.md](SECURITY.md) and [SECURITY_AUDIT.md](SECURITY_AUDIT.md).
 - Navigation: Mole supports arrow keys and Vim bindings `h/j/k/l`.
 
 ## Features in Detail
@@ -209,6 +209,8 @@ Proxy   HTTP · 192.168.1.100             Terminal   ▮▯▯▯▯  12.5%
 Health score is based on CPU, memory, disk, temperature, and I/O load, with color-coded ranges.
 
 Shortcuts: In `mo status`, press `k` to toggle the cat and save the preference, and `q` to quit.
+
+When enabled, `mo status` shows a read-only alert banner for processes that stay above the configured CPU threshold for a sustained window. Use `--proc-cpu-threshold`, `--proc-cpu-window`, or `--proc-cpu-alerts=false` to tune or disable it.
 
 #### Machine-Readable Output
 
