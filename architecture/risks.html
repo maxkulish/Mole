@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risks — Mole</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --muted: #8b949e;
+    --accent: #58a6ff; --green: #3fb950; --orange: #d29922; --red: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace; font-size: 14px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header .meta { color: var(--muted); font-size: 12px; font-family: monospace; }
+  nav { display: flex; gap: 4px; padding: 0 32px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav a { padding: 10px 14px; color: var(--muted); border-bottom: 2px solid transparent; font-size: 13px; }
+  nav a:hover { color: var(--text); text-decoration: none; }
+  nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  .section-title { font-size: 17px; font-weight: 700; margin: 28px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .risk-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+  .risk-card.high { border-left: 4px solid var(--red); }
+  .risk-card.medium { border-left: 4px solid var(--orange); }
+  .risk-card.low { border-left: 4px solid var(--green); }
+  .risk-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .risk-title { font-size: 15px; font-weight: 600; }
+  .severity { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 4px; letter-spacing: .6px; text-transform: uppercase; }
+  .severity.high { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid rgba(248,81,73,.3); }
+  .severity.medium { background: rgba(210,153,34,.15); color: var(--orange); border: 1px solid rgba(210,153,34,.3); }
+  .severity.low { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+  .risk-body { color: var(--muted); font-size: 13px; }
+  .risk-body p { margin-bottom: 8px; }
+  .risk-body strong { color: var(--text); }
+  code { font-family: monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .cannot-list { list-style: none; }
+  .cannot-list li { padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+  .cannot-list li::before { content: "✗ "; color: var(--green); }
+  .rec-list { list-style: none; }
+  .rec-list li { padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+  .rec-list li::before { content: "→ "; color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px; border-top: 1px solid var(--border); margin-top: 32px; font-family: monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦔 Mole — Risks &amp; Assessment</h1>
+  <div class="meta">github.com/maxkulish/Mole &nbsp;·&nbsp; commit 6754a55</div>
+</header>
+<nav>
+  <a href="index.html">Overview</a>
+  <a href="security.html">Security</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="risks.html" class="active">Risks</a>
+  <a href="github-activity.html">GitHub Activity</a>
+</nav>
+<main>
+
+<div class="section-title">Risk Cards (sorted by severity)</div>
+
+<div class="risk-card medium">
+  <div class="risk-header">
+    <span class="risk-title">Sudo for system cache cleanup</span>
+    <span class="severity medium">MEDIUM</span>
+  </div>
+  <div class="risk-body">
+    <p><strong>Description:</strong> Shell scripts request sudo to delete system caches and logs in <code>/private/var/</code> and related paths. If the path validation in <code>lib/core/file_ops.sh</code> had a bypass bug, a privileged deletion could remove important system files.</p>
+    <p><strong>Evidence:</strong> <code>lib/core/sudo.sh</code>, <code>lib/core/file_ops.sh:67-176</code> (validate_path_for_deletion), <code>lib/core/file_ops.sh:303</code> (safe_sudo_remove)</p>
+    <p><strong>Mitigation:</strong> Path validation has multiple guards (empty path, relative path, traversal, control chars, system dir blocklist). An allowlist of safe sudo paths is maintained. sudo sessions are time-limited (5 min). Dry-run mode available for preview.</p>
+  </div>
+</div>
+
+<div class="risk-card medium">
+  <div class="risk-header">
+    <span class="risk-title">Installer downloads from GitHub (install.sh)</span>
+    <span class="severity medium">MEDIUM</span>
+  </div>
+  <div class="risk-body">
+    <p><strong>Description:</strong> The installer downloads binaries from GitHub releases. If the GitHub repository or release were compromised (supply-chain attack), a user running the installer could get a malicious binary. This is standard for many open-source tools but worth noting.</p>
+    <p><strong>Evidence:</strong> <code>install.sh:496</code> downloads binary from <code>https://github.com/tw93/mole/releases/download/V${version}/</code></p>
+    <p><strong>Mitigation:</strong> Downloads are over HTTPS from the official GitHub repository. Version validation is performed before download. For higher assurance, build from source using <code>go build ./cmd/...</code>.</p>
+  </div>
+</div>
+
+<div class="risk-card low">
+  <div class="risk-header">
+    <span class="risk-title">Shell eval usage in base.sh</span>
+    <span class="severity low">LOW</span>
+  </div>
+  <div class="risk-body">
+    <p><strong>Description:</strong> Limited use of <code>eval</code> in shell scripts for home directory expansion and trap cleanup registration. If the variables passed to eval contained user-controlled content, this could be an injection vector.</p>
+    <p><strong>Evidence:</strong> <code>lib/core/base.sh:256, 690</code>, <code>lib/clean/project.sh:860-861</code></p>
+    <p><strong>Mitigation:</strong> Variables passed to eval are derived from internal logic (home directory expansion, trap string construction), not from user input. No user-supplied strings flow into these eval calls.</p>
+  </div>
+</div>
+
+<div class="risk-card low">
+  <div class="risk-header">
+    <span class="risk-title">AppleScript argument escaping</span>
+    <span class="severity low">LOW</span>
+  </div>
+  <div class="risk-body">
+    <p><strong>Description:</strong> File paths are embedded in an AppleScript string for Finder Trash operations. If escaping were incomplete, a specially crafted filename could inject AppleScript commands.</p>
+    <p><strong>Evidence:</strong> <code>cmd/analyze/delete.go:127-131</code> - escapes quotes and backslashes</p>
+    <p><strong>Mitigation:</strong> The code explicitly escapes single quotes and backslashes before embedding paths in AppleScript. User-selected paths come from directory scanning (not arbitrary user input). Risk is very low in practice.</p>
+  </div>
+</div>
+
+<div class="risk-card low">
+  <div class="risk-header">
+    <span class="risk-title">Information loss risk (disk analyzer)</span>
+    <span class="severity low">LOW</span>
+  </div>
+  <div class="risk-body">
+    <p><strong>Description:</strong> The disk analyzer skips certain directories (e.g., <code>.git</code>, <code>node_modules</code>, <code>vendor</code>) and file types for performance. Users may not realize these are excluded from the view.</p>
+    <p><strong>Evidence:</strong> <code>cmd/analyze/constants.go</code> - skip directory and extension lists</p>
+    <p><strong>Mitigation:</strong> Skipped directories are well-known development artifacts unlikely to surprise users. The tool focuses on disk usage, not a complete file inventory.</p>
+  </div>
+</div>
+
+<div class="risk-card low">
+  <div class="risk-header">
+    <span class="risk-title">ebitengine/purego — dynamic library loading</span>
+    <span class="severity low">LOW</span>
+  </div>
+  <div class="risk-body">
+    <p><strong>Description:</strong> The transitive dependency <code>ebitengine/purego</code> (via gopsutil) uses pure Go dynamic library loading to call macOS CoreFoundation APIs without CGO. This is a less-common pattern and warrants awareness.</p>
+    <p><strong>Evidence:</strong> <code>go.mod</code> - <code>github.com/ebitengine/purego v0.9.1</code> (indirect)</p>
+    <p><strong>Mitigation:</strong> purego is a well-established library by the Ebiten game engine team. It only loads Apple system frameworks (not third-party DLLs). gopsutil is a widely used, well-audited library.</p>
+  </div>
+</div>
+
+<div class="section-title">What This Application Cannot Do</div>
+<ul class="cannot-list">
+  <li>Send any data to remote servers (no HTTP client in Go code)</li>
+  <li>Exfiltrate files, clipboard contents, or keychain data</li>
+  <li>Install persistent backdoors (no LaunchAgent/daemon installation)</li>
+  <li>Permanently delete files without using macOS Trash</li>
+  <li>Execute arbitrary shell commands from user input (no shell injection vector)</li>
+  <li>Access other users' files (runs as current user, no privilege escalation beyond sudo for system caches)</li>
+  <li>Listen on network ports or accept remote connections</li>
+  <li>Modify system binaries or system files</li>
+  <li>Capture keystrokes beyond the TUI input handling (bubbletea)</li>
+  <li>Access protected data (Health, Photos, Location) without explicit user permission</li>
+</ul>
+
+<div class="section-title">Recommendations</div>
+<ul class="rec-list">
+  <li>Always run <code>mo analyze --dry-run</code> (or equivalent) before bulk deletion to preview changes</li>
+  <li>Review <code>~/.config/mole/operations.log</code> periodically to audit what was cleaned</li>
+  <li>If security-sensitive, build from source rather than using the installer binary</li>
+  <li>Consider adding <code>MO_NO_OPLOG=1</code> only if log privacy is a concern; the log is valuable for auditing</li>
+  <li>Monitor the GitHub repository for security disclosures given the tool's broad filesystem access</li>
+</ul>
+
+</main>
+<footer>Analysis date: 2026-02-24 &nbsp;·&nbsp; Commit: 6754a5544ba1f59edbc47c20c7a7585798d1ce6a</footer>
+</body>
+</html>

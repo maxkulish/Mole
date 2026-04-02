@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture — Mole</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --muted: #8b949e;
+    --accent: #58a6ff; --green: #3fb950; --orange: #d29922; --red: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace; font-size: 14px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header .meta { color: var(--muted); font-size: 12px; font-family: monospace; }
+  nav { display: flex; gap: 4px; padding: 0 32px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav a { padding: 10px 14px; color: var(--muted); border-bottom: 2px solid transparent; font-size: 13px; }
+  nav a:hover { color: var(--text); text-decoration: none; }
+  nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  .section-title { font-size: 17px; font-weight: 700; margin: 28px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  pre { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; font-family: monospace; font-size: 12px; overflow-x: auto; color: var(--accent); line-height: 1.7; margin-bottom: 24px; }
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .module-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+  .module-card .pkg { font-size: 11px; color: var(--orange); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+  .module-card .name { font-size: 14px; font-weight: 600; color: var(--accent); font-family: monospace; margin-bottom: 6px; }
+  .module-card .lines { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .module-card p { font-size: 12px; color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .not-list { list-style: none; }
+  .not-list li { padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+  .not-list li::before { content: "✗ "; color: var(--green); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px; border-top: 1px solid var(--border); margin-top: 32px; font-family: monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦔 Mole — Architecture</h1>
+  <div class="meta">github.com/maxkulish/Mole &nbsp;·&nbsp; commit 6754a55</div>
+</header>
+<nav>
+  <a href="index.html">Overview</a>
+  <a href="security.html">Security</a>
+  <a href="architecture.html" class="active">Architecture</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="risks.html">Risks</a>
+  <a href="github-activity.html">GitHub Activity</a>
+</nav>
+<main>
+
+<div class="section-title">Data Flow — Disk Analyzer (mo analyze)</div>
+<pre>
+User Input (Keyboard)
+        │
+        ▼
+  ┌─────────────────────────────────────────────────────┐
+  │            BubbleTea Event Loop (main.go)           │
+  │   Update() dispatches on key events & messages      │
+  └──────┬──────────────┬──────────────┬────────────────┘
+         │              │              │
+         ▼              ▼              ▼
+   [Navigate]     [Scan cmd]      [Delete cmd]
+   up/down/jk     ──────────      ────────────
+                  │               │
+                  ├─ Cache hit?   ├─ filepath.WalkDir()  (count items)
+                  │   └─ return   │
+                  │               └─ moveToTrash()
+                  ├─ Stale cache?     osascript → Finder → ~/Trash
+                  │   └─ use stale + background refresh
+                  │
+                  └─ scanPathConcurrent()  [singleflight]
+                          │
+                          ├─ os.ReadDir(root)
+                          │
+                          ├─ Worker pool (16–64 goroutines)
+                          │   ├─ Walk directory tree
+                          │   ├─ Skip: .git, node_modules, vendor…
+                          │   ├─ exec: du -skP  (dir sizes)
+                          │   └─ exec: mdfind -onlyin (files > 100MB)
+                          │
+                          ├─ Top-N heap (30 dirs, 20 large files)
+                          │
+                          └─ saveCacheToDisk()
+                              ~/.config/mole/analyze_cache/&lt;hash&gt;.gob
+                              ~/.config/mole/analyze_cache/&lt;hash&gt;.json
+        │
+        ▼
+  View() → Terminal Output (bubbletea / lipgloss)
+</pre>
+
+<div class="section-title">Data Flow — System Monitor (mo status)</div>
+<pre>
+main() → newModel() → Init() → collectCmd()
+                                     │
+               ┌─────────────────────┴─────────────────────┐
+               │          Parallel metric collection         │
+               │                                             │
+          collectCPU()          collectMemory()              │
+          gopsutil cpu.Percent  gopsutil vm.VirtualMemory    │
+               │                    │                        │
+          collectDisk()         collectNetwork()             │
+          gopsutil disk.Usage   gopsutil net.IOCounters      │
+          exec: df              (read-only)                  │
+               │                    │                        │
+          collectBattery()      collectGPU()                 │
+          exec: pmset           exec: system_profiler        │
+               │                    │                        │
+          collectHardware()     collectBluetooth()           │
+          exec: system_profiler  exec: system_profiler       │
+               │                    │                        │
+               └─────────────────────┴─────────────────────┘
+                                     │
+                              calculateHealthScore()
+                              (weighted 0-100 score)
+                              CPU 30% + Mem 25% + Disk 20%
+                              + Thermal 15% + I/O 10%
+                                     │
+                              View() → Terminal Output
+                              (responsive card layout, 100ms tick)
+                                     │
+                              Repeat every N seconds
+</pre>
+
+<div class="section-title">Module Map</div>
+<div class="module-grid">
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">main.go</div><div class="lines">~1,160 lines</div><p>BubbleTea TUI orchestration, model state, keyboard input, command dispatch</p></div>
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">scanner.go</div><div class="lines">~1,053 lines</div><p>Concurrent FS traversal with worker pool, heap-based Top-N tracking, singleflight dedup</p></div>
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">cache.go</div><div class="lines">~300 lines</div><p>Disk cache management (JSON metadata + GOB encoded scan results), TTL logic</p></div>
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">delete.go</div><div class="lines">~147 lines</div><p>Safe file deletion via Finder AppleScript → Trash. Properly escapes AppleScript args.</p></div>
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">view.go</div><div class="lines">~400 lines</div><p>TUI rendering: directory lists, progress bars, large-file tab, delete confirmation</p></div>
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">format.go</div><div class="lines">~250 lines</div><p>Utilities: humanize bytes, path truncation, number formatting</p></div>
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">heap.go</div><div class="lines">~40 lines</div><p>Min-heap for efficient Top-N largest entry tracking during scan</p></div>
+  <div class="module-card"><div class="pkg">cmd/analyze</div><div class="name">constants.go</div><div class="lines">~263 lines</div><p>Config: cache paths, worker limits, skip directories, skippable file extensions</p></div>
+  <div class="module-card"><div class="pkg">cmd/status</div><div class="name">main.go</div><div class="lines">~206 lines</div><p>System monitoring TUI orchestrator, periodic collection loop</p></div>
+  <div class="module-card"><div class="pkg">cmd/status</div><div class="name">metrics.go</div><div class="lines">~345 lines</div><p>Core data structures, aggregation, runCmd() helper with timeout</p></div>
+  <div class="module-card"><div class="pkg">cmd/status</div><div class="name">metrics_cpu.go</div><div class="lines">~180 lines</div><p>CPU usage %, core counts, load average via gopsutil</p></div>
+  <div class="module-card"><div class="pkg">cmd/status</div><div class="name">metrics_health.go</div><div class="lines">~165 lines</div><p>Weighted health score algorithm (0-100). CPU 30%, Mem 25%, Disk 20%, Thermal 15%, I/O 10%</p></div>
+  <div class="module-card"><div class="pkg">cmd/status</div><div class="name">view.go</div><div class="lines">~700 lines</div><p>Responsive terminal layout: single-column ≤80 cols, two-column cards for wider</p></div>
+  <div class="module-card"><div class="pkg">lib/</div><div class="name">Shell scripts</div><div class="lines">~dozens</div><p>Cleanup routines (clean/), health checks (check/), system optimization (optimize/), app management (manage/)</p></div>
+</div>
+
+<div class="section-title">File System Paths</div>
+<table>
+  <tr><th>Operation</th><th>Path</th><th>Format</th><th>Notes</th></tr>
+  <tr><td>Read (scan)</td><td>Any user-specified path (default: /)</td><td>OS metadata</td><td>Only reads names, sizes, mod times</td></tr>
+  <tr><td>Write (cache)</td><td><code>~/.config/mole/analyze_cache/&lt;hash&gt;.gob</code></td><td>GOB binary</td><td>24h TTL, 3-day stale</td></tr>
+  <tr><td>Write (cache)</td><td><code>~/.config/mole/analyze_cache/&lt;hash&gt;.json</code></td><td>JSON</td><td>Cache metadata</td></tr>
+  <tr><td>Write (cache)</td><td><code>~/.local/share/mole/overview_sizes.json</code></td><td>JSON</td><td>Directory size estimates</td></tr>
+  <tr><td>Write (pref)</td><td><code>~/.config/mole/status_prefs</code></td><td>key=value</td><td>UI toggle (cat_hidden)</td></tr>
+  <tr><td>Write (log)</td><td><code>~/.config/mole/operations.log</code></td><td>Text</td><td>Shell script audit log (disable with MO_NO_OPLOG=1)</td></tr>
+  <tr><td>Write (delete)</td><td><code>~/Trash/</code></td><td>Via Finder</td><td>Recoverable, not permanent</td></tr>
+</table>
+
+<div class="section-title">External Processes Spawned</div>
+<table>
+  <tr><th>Command</th><th>Args</th><th>Binary</th><th>Purpose</th></tr>
+  <tr><td><code>mdfind</code></td><td>-onlyin &lt;path&gt; &lt;query&gt;</td><td>analyze</td><td>Spotlight search for files &gt;100MB</td></tr>
+  <tr><td><code>du</code></td><td>-skP &lt;path&gt;</td><td>analyze</td><td>Accurate directory size (no symlinks)</td></tr>
+  <tr><td><code>osascript</code></td><td>-e &lt;script&gt;</td><td>analyze</td><td>Move to Trash via Finder AppleScript</td></tr>
+  <tr><td><code>open</code></td><td>&lt;path&gt; or -R &lt;path&gt;</td><td>analyze</td><td>Open in default app / reveal in Finder</td></tr>
+  <tr><td><code>pmset</code></td><td>-g rawlog / -g batt</td><td>status</td><td>Battery status and health</td></tr>
+  <tr><td><code>system_profiler</code></td><td>SP{Hardware,Displays,Bluetooth,NVMe,Thermal}DataType</td><td>status</td><td>Hardware / GPU / sensor info</td></tr>
+  <tr><td><code>df</code></td><td>-h or similar</td><td>status</td><td>Disk usage fallback</td></tr>
+</table>
+
+<div class="section-title">What This Application Does NOT Do</div>
+<ul class="not-list">
+  <li>Make network calls from Go code (zero HTTP/HTTPS in Go binaries)</li>
+  <li>Collect or transmit user data to any third party</li>
+  <li>Use telemetry, analytics, or crash reporting</li>
+  <li>Access the clipboard, keychain, or credential store</li>
+  <li>Use unsafe Go code (zero <code>unsafe</code> package usage)</li>
+  <li>Permanently delete files (all deletions go to macOS Trash)</li>
+  <li>Listen on network ports or act as a server</li>
+  <li>Install background services, LaunchAgents, or daemons</li>
+  <li>Require root / administrator privileges in Go binaries</li>
+  <li>Modify system files (read-only access to system paths)</li>
+  <li>Auto-run scheduled cleanups without user initiation</li>
+  <li>Sync data to the cloud or any external service</li>
+</ul>
+
+</main>
+<footer>Analysis date: 2026-02-24 &nbsp;·&nbsp; Commit: 6754a5544ba1f59edbc47c20c7a7585798d1ce6a</footer>
+</body>
+</html>

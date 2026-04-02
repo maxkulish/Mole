@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GitHub Activity — Mole</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --muted: #8b949e;
+    --accent: #58a6ff; --green: #3fb950; --orange: #d29922; --red: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace; font-size: 14px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header .meta { color: var(--muted); font-size: 12px; font-family: monospace; }
+  nav { display: flex; gap: 4px; padding: 0 32px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav a { padding: 10px 14px; color: var(--muted); border-bottom: 2px solid transparent; font-size: 13px; }
+  nav a:hover { color: var(--text); text-decoration: none; }
+  nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  .section-title { font-size: 17px; font-weight: 700; margin: 28px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .info-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+  .info-box p { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .info-box p:last-child { margin-bottom: 0; }
+  .info-box code { font-family: monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .commits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .stat-card .num { font-size: 28px; font-weight: 700; color: var(--accent); }
+  .stat-card .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 3px; }
+  .badge.merged { background: rgba(188,140,255,.15); color: #bc8cff; }
+  .badge.open { background: rgba(63,185,80,.15); color: var(--green); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px; border-top: 1px solid var(--border); margin-top: 32px; font-family: monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦔 Mole — GitHub Activity</h1>
+  <div class="meta">github.com/maxkulish/Mole &nbsp;·&nbsp; commit 6754a55</div>
+</header>
+<nav>
+  <a href="index.html">Overview</a>
+  <a href="security.html">Security</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="risks.html">Risks</a>
+  <a href="github-activity.html" class="active">GitHub Activity</a>
+</nav>
+<main>
+
+<div class="section-title">Repository Stats</div>
+
+<div class="info-box">
+  <p>GitHub issue and PR data was queried via the <code>gh</code> CLI at analysis time (2026-02-24). The repository returned 0 open issues and 0 open pull requests via the API. This may indicate the repository uses a different issue tracker, or issues/PRs are managed on the upstream <a href="https://github.com/tw93/Mole" target="_blank">tw93/Mole</a> repository (the module path in go.mod is <code>github.com/tw93/mole</code>, while the remote URL is <code>github.com/maxkulish/Mole</code>).</p>
+  <p>The local git log shows active recent development with automated maintenance commits (auto-format, contributor updates) and substantive feature/fix commits.</p>
+</div>
+
+<div class="section-title">Recent Commits (from local git log)</div>
+<table>
+  <tr><th>Hash</th><th>Message</th><th>Type</th></tr>
+  <tr>
+    <td><code>6754a55</code></td>
+    <td>chore: auto format code</td>
+    <td>Maintenance</td>
+  </tr>
+  <tr>
+    <td><code>b9c067f</code></td>
+    <td>chore: update contributors [skip ci]</td>
+    <td>Maintenance</td>
+  </tr>
+  <tr>
+    <td><code>98089ee</code></td>
+    <td>Fix(raycast): Made mole script commands discoverable (#489)</td>
+    <td>Bug fix</td>
+  </tr>
+  <tr>
+    <td><code>4f4a194</code></td>
+    <td>chore: update contributors [skip ci]</td>
+    <td>Maintenance</td>
+  </tr>
+  <tr>
+    <td><code>ae5e817</code></td>
+    <td>Fix (#486)</td>
+    <td>Bug fix</td>
+  </tr>
+</table>
+
+<div class="section-title">Project Health Assessment</div>
+<div class="commits-grid">
+  <div class="stat-card"><div class="num">✓</div><div class="label">Active development (recent commits)</div></div>
+  <div class="stat-card"><div class="num">✓</div><div class="label">Automated formatting / CI in place</div></div>
+  <div class="stat-card"><div class="num">✓</div><div class="label">Contributors tracked (CONTRIBUTORS.svg)</div></div>
+  <div class="stat-card"><div class="num">✓</div><div class="label">Security audit file (SECURITY_AUDIT.md)</div></div>
+  <div class="stat-card"><div class="num">✓</div><div class="label">Contribution guide (CONTRIBUTING.md)</div></div>
+  <div class="stat-card"><div class="num">✓</div><div class="label">Tests present (BATS + Go tests)</div></div>
+</div>
+
+<div class="section-title">Observations</div>
+<div class="info-box">
+  <p><strong>Issue tracker:</strong> The fork at <code>maxkulish/Mole</code> has no open issues, consistent with it being a personal fork of the upstream <code>tw93/Mole</code>. Community issues and feature requests likely live on the upstream repository.</p>
+  <p><strong>PR #489 (Raycast fix):</strong> The commit message references a Raycast integration fix, indicating the tool integrates with Raycast (macOS launcher) and has external community contributions.</p>
+  <p><strong>PR #486:</strong> A recent bug fix with no description in the commit message, indicating active maintenance.</p>
+  <p><strong>Automation:</strong> The [skip ci] tags and auto-format commits indicate a CI/CD pipeline is active, including automated contributor tracking - a sign of a mature, well-maintained project.</p>
+  <p><strong>Security:</strong> The presence of <code>SECURITY_AUDIT.md</code> at the repo root is notable - the project's authors have already performed and documented a security analysis, demonstrating security awareness.</p>
+</div>
+
+</main>
+<footer>Analysis date: 2026-02-24 &nbsp;·&nbsp; Commit: 6754a5544ba1f59edbc47c20c7a7585798d1ce6a</footer>
+</body>
+</html>

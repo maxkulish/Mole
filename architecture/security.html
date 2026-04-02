@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Audit — Mole</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --muted: #8b949e;
+    --accent: #58a6ff; --green: #3fb950; --orange: #d29922; --red: #f85149;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace; font-size: 14px; line-height: 1.6; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px 32px; }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header .meta { color: var(--muted); font-size: 12px; font-family: monospace; }
+  nav { display: flex; gap: 4px; padding: 0 32px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav a { padding: 10px 14px; color: var(--muted); border-bottom: 2px solid transparent; font-size: 13px; }
+  nav a:hover { color: var(--text); text-decoration: none; }
+  nav a.active { color: var(--accent); border-bottom-color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  .check-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; }
+  .check-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .check-title { font-size: 15px; font-weight: 600; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 4px; letter-spacing: .6px; text-transform: uppercase; }
+  .badge.pass { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+  .badge.review { background: rgba(210,153,34,.15); color: var(--orange); border: 1px solid rgba(210,153,34,.3); }
+  .badge.fail { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid rgba(248,81,73,.3); }
+  .check-body { color: var(--muted); font-size: 13px; }
+  .check-body p { margin-bottom: 8px; }
+  .evidence { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; margin-top: 10px; font-family: monospace; font-size: 12px; color: var(--accent); white-space: pre-wrap; word-break: break-all; }
+  .section-title { font-size: 17px; font-weight: 700; margin: 28px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 3px; margin-right: 4px; }
+  .tag.safe { background: rgba(63,185,80,.15); color: var(--green); }
+  .tag.review { background: rgba(210,153,34,.15); color: var(--orange); }
+  .tag.info { background: rgba(88,166,255,.12); color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px; border-top: 1px solid var(--border); margin-top: 32px; font-family: monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🦔 Mole — Security Audit</h1>
+  <div class="meta">github.com/maxkulish/Mole &nbsp;·&nbsp; commit 6754a55</div>
+</header>
+<nav>
+  <a href="index.html">Overview</a>
+  <a href="security.html" class="active">Security</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="dependencies.html">Dependencies</a>
+  <a href="risks.html">Risks</a>
+  <a href="github-activity.html">GitHub Activity</a>
+</nav>
+<main>
+
+<div class="section-title">Network Connectivity</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">Go source — HTTP / network calls</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>No <code>net/http</code>, <code>http.Get</code>, <code>http.Post</code>, <code>net.Dial</code>, or <code>http.NewRequest</code> found in any Go source file. The Go binaries make zero outbound network connections.</p>
+  </div>
+</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">Shell scripts — network access</span>
+    <span class="badge review">REVIEW</span>
+  </div>
+  <div class="check-body">
+    <p>Network calls exist only in <code>install.sh</code> and <code>lib/check/all.sh</code>. All contacts are to <code>github.com</code> with connection timeouts. Used exclusively for: downloading the installer tarball, version checks, and update notifications. No third-party services involved.</p>
+    <div class="evidence">install.sh:170   curl -fsSL https://github.com/tw93/mole/archive/ (10s timeout)
+install.sh:225   curl https://api.github.com/repos/tw93/mole/releases/latest (2s timeout)
+install.sh:496   https://github.com/tw93/mole/releases/download/V${version}/
+lib/check/all.sh GitHub API update check (non-blocking)</div>
+  </div>
+</div>
+
+<div class="section-title">Telemetry &amp; Analytics</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">Telemetry, analytics, tracking</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>No matches for <code>telemetry</code>, <code>analytics</code>, <code>tracking</code>, <code>beacon</code>, <code>phone_home</code>, <code>sentry</code>, <code>datadog</code>, <code>mixpanel</code>, <code>amplitude</code>, <code>segment</code>, <code>posthog</code>, or <code>opentelemetry</code> in any source file. The one match for <code>segment</code> in <code>cmd/status/metrics_cpu.go:177</code> is a string variable (substring of text output), not an analytics SDK.</p>
+  </div>
+</div>
+
+<div class="section-title">Data Exfiltration</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">Upload / transmit / exfil / webhook</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>No data upload, webhook, or exfiltration mechanisms found in any Go source or shell script. No user data leaves the machine during normal operation.</p>
+  </div>
+</div>
+
+<div class="section-title">Environment Variables</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">os.Getenv / os.LookupEnv usage</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>All environment variable access is for legitimate configuration. No sensitive data is read from the environment.</p>
+    <table>
+      <tr><th>Variable</th><th>File</th><th>Purpose</th></tr>
+      <tr><td><code>MO_ANALYZE_PATH</code></td><td>cmd/analyze/main.go:130</td><td>Override scan target path</td></tr>
+      <tr><td><code>HOME</code></td><td>cmd/analyze/main.go:216, scanner.go:138,622</td><td>User home directory resolution</td></tr>
+      <tr><td><code>CI</code></td><td>cmd/analyze/delete_test.go:11,46,96</td><td>Skip destructive tests in CI</td></tr>
+      <tr><td>Proxy vars</td><td>cmd/status/metrics_network.go:119</td><td>Detect system proxy config (read-only)</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section-title">File System Operations</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">File writes</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>All writes are limited to the user's config and cache directories. No writes to system paths.</p>
+    <table>
+      <tr><th>File</th><th>Lines</th><th>Path Written</th><th>Purpose</th></tr>
+      <tr><td>cmd/analyze/cache.go</td><td>142, 169, 275</td><td>~/.config/mole/analyze_cache/</td><td>Scan result cache (GOB + JSON)</td></tr>
+      <tr><td>cmd/analyze/cache.go</td><td>—</td><td>~/.local/share/mole/overview_sizes.json</td><td>Directory size cache</td></tr>
+      <tr><td>cmd/status/main.go</td><td>73, 80</td><td>~/.config/mole/status_prefs</td><td>UI preference (cat_hidden)</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">File deletions</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>The Go analyze binary deletes files exclusively via macOS Finder / AppleScript (<code>moveToTrash()</code>). Files go to <code>~/Trash</code> — not permanently deleted. Shell scripts use <code>safe_remove()</code> with comprehensive path validation.</p>
+    <div class="evidence">cmd/analyze/delete.go:82-116  moveToTrash() via osascript → Finder → ~/Trash
+lib/core/file_ops.sh:67-176   validate_path_for_deletion()
+  - Blocks: empty, relative, traversal (/../), control chars
+  - Blocks system dirs: /, /System, /bin, /sbin, /usr, /etc, /var, /private, /Library/Extensions</div>
+  </div>
+</div>
+
+<div class="section-title">Process Execution</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">exec.Command / os/exec usage</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>All process calls use <code>exec.CommandContext()</code> with timeouts. Arguments are passed as arrays (not concatenated strings), preventing shell injection. No <code>sh -c</code> or shell invocation used.</p>
+    <table>
+      <tr><th>Command</th><th>File</th><th>Args Style</th><th>Timeout</th></tr>
+      <tr><td><code>osascript</code></td><td>cmd/analyze/delete.go:136</td><td>Array ["-e", script]</td><td>30s</td></tr>
+      <tr><td><code>mdfind</code></td><td>cmd/analyze/scanner.go:430</td><td>Array ["-onlyin", path, query]</td><td>5s</td></tr>
+      <tr><td><code>du</code></td><td>cmd/analyze/scanner.go:659</td><td>Array ["-skP", target]</td><td>30s</td></tr>
+      <tr><td><code>open</code></td><td>cmd/analyze/main.go:765+</td><td>Array [path] or ["-R", path]</td><td>30s</td></tr>
+      <tr><td><code>pmset</code></td><td>cmd/status/metrics_battery.go</td><td>Array, context-controlled</td><td>Context</td></tr>
+      <tr><td><code>system_profiler</code></td><td>cmd/status/metrics_*.go</td><td>Array with data type flag</td><td>Context</td></tr>
+      <tr><td><code>df</code></td><td>cmd/status/metrics_disk.go</td><td>Array</td><td>Context</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="section-title">Unsafe Code</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">unsafe package usage</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>Zero uses of the <code>unsafe</code> package across all 31 Go source files. The codebase is written in pure safe Go.</p>
+  </div>
+</div>
+
+<div class="section-title">Hardcoded Secrets</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">Password / API key / token / credential</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>No hardcoded secrets, API keys, tokens, or credentials found. The only match:</p>
+    <div class="evidence">cmd/analyze/analyze_test.go:618-619  os.WriteFile(filepath.Join(lockedDir, "secret.txt"), []byte("shh"), 0o644)
+  → Test fixture file with dummy content, not a credential</div>
+  </div>
+</div>
+
+<div class="section-title">Clipboard &amp; Keychain Access</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">Clipboard / keyring / keychain</span>
+    <span class="badge pass">PASS</span>
+  </div>
+  <div class="check-body">
+    <p>No clipboard, keyring, or keychain access found anywhere in the codebase.</p>
+  </div>
+</div>
+
+<div class="section-title">Privilege Escalation</div>
+
+<div class="check-card">
+  <div class="check-header">
+    <span class="check-title">sudo usage</span>
+    <span class="badge review">REVIEW</span>
+  </div>
+  <div class="check-body">
+    <p>Shell scripts use sudo for system cache/log cleanup only. The Go binaries never request elevated privileges. Sudo is session-limited with a 5-minute cache timeout, and protected paths are strictly enforced.</p>
+    <div class="evidence">lib/core/sudo.sh  TTY-based password prompt, echo disabled during input
+  sudo only for: /private/var/*, /private/tmp, diagnostic files, dyld cache rebuild
+  NOT used for: user files, ~/Documents, ~/Desktop, any user data</div>
+  </div>
+</div>
+
+</main>
+<footer>Analysis date: 2026-02-24 &nbsp;·&nbsp; Commit: 6754a5544ba1f59edbc47c20c7a7585798d1ce6a</footer>
+</body>
+</html>
